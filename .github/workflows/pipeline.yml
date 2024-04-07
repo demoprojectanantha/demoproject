@@ -40,6 +40,26 @@ jobs:
       - name: Install Maven Project
         run: jf mvn install -DskipTests -T 4 --project=masterdemo
 
+      - name: Build Docker Image
+          #   env:
+          #    DOCKER_IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+          #     DOCKER_IMAGE_TAG: $(echo $DOCKER_REG_SRV/$DOCKER_REG_NAME/$DOCKER_IMAGE_NAME)
+          #     DOCKER_REG_NAME: ${{ vars.DOCKER_REG_NAME }}
+          #     DOCKER_REG_SRV: ${{ vars.DOCKER_REG_SRV }}
+
+        run: docker build -t masterdemo-dockerbuild .
+
+        #echo " this is the tag ${{ vars.DOCKER_IMAGE_TAG }} "
+        #echo " this is also the tag $(echo $DOCKER_REG_SRV/$DOCKER_REG_NAME/$DOCKER_IMAGE_NAME) "
+        #docker build -t $DOCKER_IMAGE_NAME .
+        #docker tag $DOCKER_IMAGE_NAME $JOB_DOCKER_IMAGE_TAG
+
+      - name: Login to Docker Enviroment
+        run: docker login ${{ secrets.JF }} -u ${{ secrets.JF_USER }} -p ${{ secrets.JF_PASS }}
+
+      - name: Tag Docker Image
+        run: docker tag masterdemo-dockerbuild:latest soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:latest
+
       - name: Collect and Publish Build Info
         run: |
             # Collect environment variables for the build
