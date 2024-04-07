@@ -39,4 +39,13 @@ jobs:
           jf -v
       - name: Install Maven Project
         run: jf mvn install -DskipTests -T 4 --project=masterdemo
+
+      - name: Collect and Publish Build Info
+        run: |
+            # Collect environment variables for the build
+            jf rt bce
+            # Collect VCS details from git and add them to the build
+            jf rt bag
+            # Publish build info
+            jf rt bp --project=masterdemo 
        
