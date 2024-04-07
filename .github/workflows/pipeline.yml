@@ -59,7 +59,9 @@ jobs:
 
       - name: Tag Docker Image
         run: docker tag masterdemo-dockerbuild:latest soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:latest
-
+      - name: Push Docker Image to RT
+        #run: docker push $DOCKER_IMAGE_TAG
+        run: jf docker push soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:latest --project=masterdemo
       - name: Collect and Publish Build Info
         run: |
             # Collect environment variables for the build
