@@ -18,6 +18,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 19
+      - name: Increment Maven Version
+        run: mvn versions:set -DnewVersion=\${{ github.run_number }}
+
 
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4.0.1
