@@ -96,7 +96,7 @@ jobs:
                               ]
                                   }
                         }'
-          - name: Promote Release Bundle 
+          - name: Promote Release Bundle 1
             run: |
               curl --location 'https://soleng.jfrog.io//lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo' \
                --header 'X-JFrog-Signing-Key-Name: debian-erika' \
