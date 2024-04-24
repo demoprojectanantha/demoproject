@@ -140,7 +140,7 @@ jobs:
                           "included_repository_keys": [],
                           "excluded_repository_keys": []
                         }' 
-      - name: Promote Release Bundle from PROD to Edge Node
+      - name: Promote Release Bundle from PROD to SolEngEdge Node
         run: |
           curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/distribution/distribute/masterdemo/${{ github.run_number }}?project=masterdemo' \
                --header 'X-JFrog-Signing-Key-Name: debian-erika' \
