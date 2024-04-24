@@ -140,5 +140,27 @@ jobs:
                           "included_repository_keys": [],
                           "excluded_repository_keys": []
                         }' 
+      - name: Promote Release Bundle from PROD to Edge Node
+        run: |
+          curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/distribution/distribute/masterdemo/${{ github.run_number }}?project=masterdemo' \
+               --header 'X-JFrog-Signing-Key-Name: debian-erika' \
+               --header 'Content-Type: application/json' \
+               --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
+               --data '{
+                        "auto_create_missing_repositories": "true",
+                        "distribution_rules": [
+                        {
+                          "site_name": "SolEngEdgeSaaS"
+                        }
+                        ],
+                        "modifications": {
+                          "mappings": [
+                              {
+                              "input": "(.*)/(.*)",
+                              "output": "$1/mapping/$2"
+                              }
+                                    ]
+                          }
+                      }' 
        
        
