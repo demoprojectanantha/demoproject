@@ -78,23 +78,23 @@ jobs:
       - name: Create Release Bundle
         run: |
           curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/release_bundle' \
-          --header 'X-JFrog-Signing-Key-Name: debian-erika' \
-          --header 'Content-Type: application/json' \
-          --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
-          --data '{
-            "release_bundle_name": "masterdemo",
-            "release_bundle_version": ${{ github.run_number }},
-            "project_key": "masterdemo",
-            "source_type": "builds",
-            "source": {
-                "builds": [
-                    {
-                        "build_repository": "masterdemo-build-info",
-                        "build_name": "demoproject-pipeline",
-                        "build_number": ${{ github.run_number }},
-                        "include_dependencies": false
-                    }
-                ]
-            }
-          }'
+               --header 'X-JFrog-Signing-Key-Name: debian-erika' \
+               --header 'Content-Type: application/json' \
+               --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
+               --data '{
+                        "release_bundle_name": "masterdemo",
+                        "release_bundle_version": ${{ github.run_number }},
+                        "project_key": "masterdemo",
+                        "source_type": "builds",
+                        "source": {
+                              "builds": [
+                                {
+                                  "build_repository": "masterdemo-build-info",
+                                  "build_name": "demoproject-pipeline",
+                                  "build_number": ${{ github.run_number }},
+                                  "include_dependencies": false
+                                }
+                              ]
+                                    }
+                        }'  
        
