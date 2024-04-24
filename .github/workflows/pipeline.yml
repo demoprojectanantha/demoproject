@@ -94,6 +94,20 @@ jobs:
                                   "include_dependencies": false
                                 }
                               ]
-                                    }
+                                  }
+                        }'
+          - name: Promote Release Bundle 
+            run: |
+              curl --location 'https://soleng.jfrog.io//lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo' \
+               --header 'X-JFrog-Signing-Key-Name: debian-erika' \
+               --header 'Content-Type: application/json' \
+               --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
+               --data '{
+                          {
+                          "environment": "DEV",
+                          "included_repository_keys": [],
+                          "excluded_repository_keys": [],
+                          }
                         }'  
+       
        
