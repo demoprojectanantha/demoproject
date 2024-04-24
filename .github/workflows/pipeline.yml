@@ -39,6 +39,11 @@ jobs:
           jf -v
       - name: Install Maven Project
         run: jf mvn install -DskipTests -T 4 --project=masterdemo
+      - name: Build project
+        run: |
+          echo "Build Number: ${{ github.run_number }}"
+          echo "Build Start Time: ${{ github.run_started_at }}"
+        # Your build commands here
 
       - name: Build Docker Image
           #   env:
