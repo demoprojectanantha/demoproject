@@ -103,11 +103,9 @@ jobs:
                --header 'Content-Type: application/json' \
                --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
                --data '{
-                          {
                           "environment": "DEV",
                           "included_repository_keys": [masterdemo-docker-dev-local,masterdemo-maven-dev-local],
                           "excluded_repository_keys": [],
-                          }
                         }'  
        
        
