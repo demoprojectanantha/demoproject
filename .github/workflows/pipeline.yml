@@ -77,14 +77,13 @@ jobs:
             jf rt bp --project=masterdemo 
       - name: Create Release Bundle
         run: |
-          curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/release_bundle' \
+          curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/release_bundle?project=masterdemo&async=false' \
                --header 'X-JFrog-Signing-Key-Name: debian-erika' \
                --header 'Content-Type: application/json' \
                --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
                --data '{
                         "release_bundle_name": "masterdemo",
                         "release_bundle_version": ${{ github.run_number }},
-                        "project_key": "masterdemo",
                         "source_type": "builds",
                         "source": {
                               "builds": [
