@@ -107,18 +107,7 @@ jobs:
                           "included_repository_keys": [],
                           "excluded_repository_keys": []
                         }'  
-      - name: Promote Release Bundle from DEV to QA
-        run: |
-          curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo&async=false' \
-               --header 'X-JFrog-Signing-Key-Name: debian-erika' \
-               --header 'Content-Type: application/json' \
-               --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
-               --data '{
-                          "environment": "QA",
-                          "included_repository_keys": [],
-                          "excluded_repository_keys": []
-                        }' 
-      - name: Promote Release Bundle from QA to TEST
+      - name: Promote Release Bundle from DEV to TEST
         run: |
           curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo&async=false' \
                --header 'X-JFrog-Signing-Key-Name: debian-erika' \
@@ -129,7 +118,18 @@ jobs:
                           "included_repository_keys": [],
                           "excluded_repository_keys": []
                         }' 
-      - name: Promote Release Bundle from TEST to PROD
+      - name: Promote Release Bundle from TEST to QA
+        run: |
+          curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo&async=false' \
+               --header 'X-JFrog-Signing-Key-Name: debian-erika' \
+               --header 'Content-Type: application/json' \
+               --header 'Authorization: Bearer ${{ secrets.JF_ACCESS_TOKEN }}' \
+               --data '{
+                          "environment": "QA",
+                          "included_repository_keys": [],
+                          "excluded_repository_keys": []
+                        }' 
+      - name: Promote Release Bundle from QA to PROD
         run: |
           curl --location 'https://soleng.jfrog.io/lifecycle/api/v2/promotion/records/masterdemo/${{ github.run_number }}?project=masterdemo&async=false' \
                --header 'X-JFrog-Signing-Key-Name: debian-erika' \
