@@ -63,7 +63,7 @@ jobs:
         run: docker login ${{ secrets.JF_DOCKER_REGISTRY }} -u ${{ secrets.JF_USER }} -p ${{ secrets.JF_PASS }}
 
       - name: Tag Docker Image
-        run: docker tag masterdemo-dockerbuild:${{ github.run_number }} soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:${{ github.run_number }}
+        run: docker tag masterdemo-dockerbuild:latest soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:${{ github.run_number }}
       - name: Push Docker Image to RT
         #run: docker push $DOCKER_IMAGE_TAG
         run: jf docker push soleng.jfrog.io/masterdemo-docker-dev-local/masterdemo-dockerbuild:${{ github.run_number }} --project=masterdemo
