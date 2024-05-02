@@ -165,5 +165,11 @@ jobs:
                                     ]
                           }
                       }' 
+
+      - name: Delete Build Indo
+        run: |
+            # Collect environment variables for the build
+            jf rt build-clean demoproject-pipeline 30
+      
        
        
