@@ -5,6 +5,10 @@ on:
     branches: [ master ]
 
   workflow_dispatch:
+    inputs:
+      manual-trigger:
+        description: 'Manually trigger the workflow'
+        required: true
 
 jobs:
   build:
