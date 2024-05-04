@@ -12,7 +12,7 @@ jobs:
     # "frogbot" GitHub environment can approve the pull request to be scanned.
     environment: frogbot
     steps:
-      - uses: jfrog/frogbot@v2
+      - uses: jfrog/frogbot@9304d3b1d8e05a1b5fc0ba9ebf9ffbd495386250
         env:
           # [Mandatory]
           # JFrog platform URL
