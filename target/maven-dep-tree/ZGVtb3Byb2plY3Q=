@@ -1,0 +1,1 @@
+{"root":"org.example:demoproject:2.1","nodes":{"junit:junit:4.12":{"children":["org.hamcrest:hamcrest-core:1.3"],"configurations":["test"],"types":["jar"]},"org.example:demoproject:2.1":{"children":["junit:junit:4.12"],"configurations":[],"types":["jar"]},"org.hamcrest:hamcrest-core:1.3":{"children":[],"configurations":["test"],"types":["jar"]}}}
