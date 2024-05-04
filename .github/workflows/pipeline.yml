@@ -166,10 +166,9 @@ jobs:
                           }
                       }' 
 
-      - name: Delete Build Indo
-        run: |
-            # Collect environment variables for the build
-            jf rt build-clean demoproject-pipeline 30
+      - name: Frogbot by JFrog
+        uses: jfrog/frogbot@v2.20.2
+            
       
        
        
