@@ -6,6 +6,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
@@ -71,6 +74,10 @@ jobs:
         run: |
           jf mvn clean install \
             -DskipTests
+
+      # Submit the fully resolved Maven dependency tree to GitHub.
+      - name: Submit Maven dependencies to GitHub
+        uses: advanced-security/maven-dependency-submission-action@v5
 
       - name: Set Docker image name
         run: |
