@@ -9,22 +9,16 @@ on:
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
-  JFROG_CLI_BUILD_PROJECT: masterdemo
+  JF_PROJECT: masterdemo
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # ---------------------------------------------------------
-      # Checkout
-      # ---------------------------------------------------------
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------
-      # Java
-      # ---------------------------------------------------------
       - name: Set up JDK 19
         uses: actions/setup-java@v4
         with:
@@ -32,9 +26,6 @@ jobs:
           java-version: "19"
           cache: maven
 
-      # ---------------------------------------------------------
-      # Pin Maven to avoid the Maven 3.9.16 extractor issue
-      # ---------------------------------------------------------
       - name: Install Maven 3.9.9
         run: |
           curl -fsSL \
@@ -44,11 +35,10 @@ jobs:
           sudo tar -xzf /tmp/apache-maven.tar.gz -C /opt
           echo "/opt/apache-maven-3.9.9/bin" >> "$GITHUB_PATH"
 
-      # ---------------------------------------------------------
-      # JFrog CLI
-      # ---------------------------------------------------------
       - name: Set up JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
+        with:
+          disable-auto-build-publish: true
         env:
           JF_URL: ${{ secrets.JF_URL }}
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
@@ -61,9 +51,6 @@ jobs:
           jf config show
           jf rt ping
 
-      # ---------------------------------------------------------
-      # Maven configuration
-      # ---------------------------------------------------------
       - name: Configure Maven repositories
         run: |
           jf mvnc \
@@ -71,12 +58,9 @@ jobs:
             --server-id-deploy=setup-jfrog-cli-server \
             --repo-resolve-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
             --repo-resolve-snapshots="${{ vars.MVN_VIRTUAL_SNAPSHOTS_REPO }}" \
-            --repo-deploy-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
-            --repo-deploy-snapshots="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}"
+            --repo-deploy-releases="${{ vars.MVN_LOCAL_RELEASE_REPO }}" \
+            --repo-deploy-snapshots="${{ vars.MVN_LOCAL_SNAPSHOTS_REPO }}"
 
-      # ---------------------------------------------------------
-      # Maven build
-      # ---------------------------------------------------------
       - name: Set Maven project version
         run: |
           mvn versions:set \
@@ -86,46 +70,24 @@ jobs:
       - name: Build Maven project
         run: |
           jf mvn clean install \
-            -DskipTests \
-            --project=masterdemo
+            -DskipTests
 
-      # ---------------------------------------------------------
-      # Docker build
-      # ---------------------------------------------------------
       - name: Set Docker image name
         run: |
-          echo "DOCKER_IMAGE=${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}" \
-            >> "$GITHUB_ENV"
+          echo "DOCKER_IMAGE=${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}" >> "$GITHUB_ENV"
 
       - name: Build Docker image
         run: |
-          docker build \
+          jf docker build \
             --tag "${DOCKER_IMAGE}" \
             .
 
-      # ---------------------------------------------------------
-      # Docker push
-      # ---------------------------------------------------------
-      - name: Log in to JFrog Docker registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.JF_DOCKER_REGISTRY }}
-          username: ${{ secrets.JF_USER }}
-          password: ${{ secrets.JF_ACCESS_TOKEN }}
-
       - name: Push Docker image
         run: |
-          jf docker push "${DOCKER_IMAGE}" \
-            --project=masterdemo
+          jf docker push "${DOCKER_IMAGE}"
 
-      # ---------------------------------------------------------
-      # Publish combined Maven and Docker build-info
-      # ---------------------------------------------------------
       - name: Publish build-info
         run: |
           jf rt build-collect-env
           jf rt build-add-git
-          jf rt build-publish \
-            "${JFROG_CLI_BUILD_NAME}" \
-            "${JFROG_CLI_BUILD_NUMBER}" \
-            --project=masterdemo
+          jf rt build-publish
