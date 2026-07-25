@@ -58,8 +58,8 @@ jobs:
             --server-id-deploy=setup-jfrog-cli-server \
             --repo-resolve-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
             --repo-resolve-snapshots="${{ vars.MVN_VIRTUAL_SNAPSHOTS_REPO }}" \
-            --repo-deploy-releases="${{ vars.MVN_LOCAL_RELEASE_REPO }}" \
-            --repo-deploy-snapshots="${{ vars.MVN_LOCAL_SNAPSHOTS_REPO }}"
+            --repo-deploy-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
+            --repo-deploy-snapshots="${{ vars.MVN_VIRTUAL_SNAPSHOTS_REPO }}"
 
       - name: Set Maven project version
         run: |
