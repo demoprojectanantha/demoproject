@@ -64,6 +64,21 @@ jobs:
             --repo-deploy-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
             --repo-deploy-snapshots="${{ vars.MVN_VIRTUAL_SNAPSHOTS_REPO }}"
 
+      # Resolve and display dependencies before changing the POM version.
+      - name: Display Maven dependency tree
+        run: |
+          mvn dependency:tree \
+            -DoutputType=text \
+            -DoutputFile=dependency-tree.txt
+
+          echo "===== Maven dependency tree ====="
+          cat dependency-tree.txt
+
+      # Submit the current pom.xml dependency graph to GitHub.
+      - name: Submit Maven dependencies to GitHub
+        uses: advanced-security/maven-dependency-submission-action@v5
+
+      # Change the application version only after dependency submission.
       - name: Set Maven project version
         run: |
           mvn versions:set \
@@ -74,10 +89,6 @@ jobs:
         run: |
           jf mvn clean install \
             -DskipTests
-
-      # Submit the fully resolved Maven dependency tree to GitHub.
-      - name: Submit Maven dependencies to GitHub
-        uses: advanced-security/maven-dependency-submission-action@v5
 
       - name: Set Docker image name
         run: |
