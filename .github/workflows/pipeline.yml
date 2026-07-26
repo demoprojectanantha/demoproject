@@ -14,7 +14,7 @@ env:
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
   JF_PROJECT: masterdemo
     # Existing AppTrust application key—not the display name
-  APPTRUST_APPLICATION_KEY: demoproject
+  APPTRUST_APPLICATION_KEY: helloworld
 
   # AppTrust expects a semantic-style version
   APPTRUST_APPLICATION_VERSION: 1.0.${{ github.run_number }}
