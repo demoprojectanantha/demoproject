@@ -109,8 +109,8 @@ jobs:
         run: |
           jf docker push "${DOCKER_IMAGE}"
 
-           - name: Publish build-info
-       run: |
+      - name: Publish build-info
+        run: |
           jf rt build-collect-env \
             "${JFROG_CLI_BUILD_NAME}" \
             "${JFROG_CLI_BUILD_NUMBER}"
