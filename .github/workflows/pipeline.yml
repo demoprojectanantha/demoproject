@@ -109,16 +109,43 @@ jobs:
         run: |
           jf docker push "${DOCKER_IMAGE}"
 
-      - name: Publish build-info
+           - name: Publish build-info
+       run: |
+          jf rt build-collect-env \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}"
+
+          jf rt build-add-git \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}"
+
+          jf rt build-publish \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}" \
+            --project="${JF_PROJECT}"
+
+      - name: Create AppTrust source spec
         run: |
-          jf rt build-collect-env
-          jf rt build-add-git
-          jf rt build-publish
+          cat > apptrust-sources.json <<EOF
+          {
+            "builds": [
+              {
+                "name": "${JFROG_CLI_BUILD_NAME}",
+                "number": "${JFROG_CLI_BUILD_NUMBER}",
+                "repository_key": "${JF_PROJECT}-build-info",
+                "include_dependencies": true
+              }
+            ]
+          }
+          EOF
+
+          echo "===== AppTrust source spec ====="
+          cat apptrust-sources.json
+
       - name: Create AppTrust application version
         run: |
           jf apptrust version-create \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}" \
-            --source-type-builds \
-            "name=${JFROG_CLI_BUILD_NAME}, id=${JFROG_CLI_BUILD_NUMBER}, include-deps=true" \
+            --spec="apptrust-sources.json" \
             --tag="github-run-${GITHUB_RUN_NUMBER}"
