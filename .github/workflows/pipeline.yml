@@ -13,6 +13,11 @@ env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
   JF_PROJECT: masterdemo
+    # Existing AppTrust application key—not the display name
+  APPTRUST_APPLICATION_KEY: demoproject
+
+  # AppTrust expects a semantic-style version
+  APPTRUST_APPLICATION_VERSION: 1.0.${{ github.run_number }}
 
 jobs:
   build:
@@ -109,3 +114,11 @@ jobs:
           jf rt build-collect-env
           jf rt build-add-git
           jf rt build-publish
+      - name: Create AppTrust application version
+        run: |
+          jf apptrust version-create \
+            "${APPTRUST_APPLICATION_KEY}" \
+            "${APPTRUST_APPLICATION_VERSION}" \
+            --source-type-builds \
+            "name=${JFROG_CLI_BUILD_NAME}, id=${JFROG_CLI_BUILD_NUMBER}, include-deps=true" \
+            --tag="github-run-${GITHUB_RUN_NUMBER}"
