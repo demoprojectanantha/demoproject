@@ -247,18 +247,16 @@ jobs:
             --provider-id="github-dependabot"
 
       - name: Promote through AppTrust lifecycle
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        stages=(DEV TEST QA TRAIN PROD)
-
-        for stage in "${stages[@]}"; do
-          echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
-          jf apptrust version-promote \
-          "${APPTRUST_APPLICATION_KEY}" \
-          "${APPTRUST_APPLICATION_VERSION}" \
-          "${stage}" \
-        --promotion-type keep \
-        --sync true
-        done
+        shell: bash
+        run: |
+           set -euo pipefail
+           stages=(DEV TEST QA TRAIN PROD)
+           for stage in "${stages[@]}"; do
+            echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
+            jf apptrust version-promote \
+            "${APPTRUST_APPLICATION_KEY}" \
+            "${APPTRUST_APPLICATION_VERSION}" \
+            "${stage}" \
+            --promotion-type keep \
+            --sync true
+           done
