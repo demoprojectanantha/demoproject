@@ -67,7 +67,7 @@
         <version>4.1</version>
     </dependency>
 
-    <!-- Existing -->
+    <!-- Existing packages-->
     <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
