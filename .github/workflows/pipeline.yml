@@ -5,18 +5,20 @@ on:
     branches:
       - master
   workflow_dispatch:
-  # Automatic daily trigger
   schedule:
     - cron: "0 13 * * *"
 
 permissions:
-  contents: write
+  contents: read
+  id-token: write
+  attestations: write
 
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
   JF_PROJECT: masterdemo
-    # Existing AppTrust application key—not the display name
+
+  # Existing AppTrust application key—not the display name
   APPTRUST_APPLICATION_KEY: helloworld
 
   # AppTrust expects a semantic-style version
@@ -101,6 +103,7 @@ jobs:
       - name: Set Docker image name
         run: |
           echo "DOCKER_IMAGE=${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}" >> "$GITHUB_ENV"
+          echo "DOCKER_SUBJECT=oci://${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild" >> "$GITHUB_ENV"
 
       - name: Build Docker image
         run: |
@@ -109,8 +112,27 @@ jobs:
             .
 
       - name: Push Docker image
+        id: push-docker
         run: |
           jf docker push "${DOCKER_IMAGE}"
+
+          IMAGE_DIGEST=$(docker inspect \
+            --format='{{index .RepoDigests 0}}' \
+            "${DOCKER_IMAGE}" | cut -d'@' -f2)
+
+          if [ -z "${IMAGE_DIGEST}" ]; then
+            echo "Could not determine the pushed Docker image digest."
+            exit 1
+          fi
+
+          echo "digest=${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Image digest: ${IMAGE_DIGEST}"
+
+      - name: Create GitHub build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.DOCKER_SUBJECT }}
+          subject-digest: ${{ steps.push-docker.outputs.digest }}
 
       - name: Publish build-info
         run: |
