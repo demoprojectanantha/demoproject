@@ -13,6 +13,7 @@ permissions:
   security-events: read
   id-token: write
   attestations: write
+  dependency-graph: write
 
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
