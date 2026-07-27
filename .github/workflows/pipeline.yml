@@ -243,5 +243,5 @@ jobs:
             --application-key="${APPTRUST_APPLICATION_KEY}" \
             --application-version="${APPTRUST_APPLICATION_VERSION}" \
             --key="${RUNNER_TEMP}/dependabot-evidence-private-key.pem" \
-            --key-alias="github-dependabot-key" \
+            --key-alias="production-signing-key" \
             --provider-id="github-dependabot"
