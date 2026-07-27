@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  security-events: read
   id-token: write
   attestations: write
 
@@ -174,3 +175,81 @@ jobs:
             "${APPTRUST_APPLICATION_VERSION}" \
             --spec="apptrust-sources.json" \
             --tag="github-run-${GITHUB_RUN_NUMBER}"
+
+      - name: Create AppTrust application version
+        run: |
+          jf apptrust version-create \
+            "${APPTRUST_APPLICATION_KEY}" \
+            "${APPTRUST_APPLICATION_VERSION}" \
+            --spec="apptrust-sources.json" \
+            --tag="github-run-${GITHUB_RUN_NUMBER}"
+
+      - name: Collect open Dependabot alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --paginate \
+            --method GET \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
+            --slurp \
+            | jq 'flatten' > dependabot-alerts-raw.json
+
+          ALERT_COUNT=$(jq 'length' dependabot-alerts-raw.json)
+
+          jq \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg commit "${GITHUB_SHA}" \
+            --arg workflow_run "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            --argjson alert_count "${ALERT_COUNT}" \
+            '{
+              repository: $repository,
+              commit: $commit,
+              workflow_run: $workflow_run,
+              collected_at: now | todate,
+              open_alert_count: $alert_count,
+              alerts: [
+                .[] | {
+                  number: .number,
+                  state: .state,
+                  dependency: {
+                    package: .dependency.package.name,
+                    ecosystem: .dependency.package.ecosystem,
+                    manifest_path: .dependency.manifest_path,
+                    scope: .dependency.scope
+                  },
+                  security_advisory: {
+                    ghsa_id: .security_advisory.ghsa_id,
+                    cve_id: .security_advisory.cve_id,
+                    summary: .security_advisory.summary,
+                    severity: .security_advisory.severity
+                  },
+                  vulnerable_version_range:
+                    .security_vulnerability.vulnerable_version_range,
+                  first_patched_version:
+                    .security_vulnerability.first_patched_version.identifier
+                }
+              ]
+            }' dependabot-alerts-raw.json \
+            > dependabot-evidence.json
+
+      - name: Prepare JFrog Evidence signing key
+        env:
+          EVIDENCE_PRIVATE_KEY: ${{ secrets.JFROG_EVIDENCE_PRIVATE_KEY }}
+        run: |
+          printf '%s' "${EVIDENCE_PRIVATE_KEY}" \
+            > "${RUNNER_TEMP}/dependabot-evidence-private-key.pem"
+
+          chmod 600 "${RUNNER_TEMP}/dependabot-evidence-private-key.pem"
+
+      - name: Attach Dependabot alerts as AppTrust evidence
+        run: |
+          jf evd create \
+            --predicate="dependabot-evidence.json" \
+            --predicate-type="https://github.com/dependabot/alerts/v1" \
+            --application-key="${APPTRUST_APPLICATION_KEY}" \
+            --application-version="${APPTRUST_APPLICATION_VERSION}" \
+            --key="${RUNNER_TEMP}/dependabot-evidence-private-key.pem" \
+            --key-alias="github-dependabot-key" \
+            --provider-id="github-dependabot"
