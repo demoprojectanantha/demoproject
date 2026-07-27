@@ -176,14 +176,6 @@ jobs:
             --spec="apptrust-sources.json" \
             --tag="github-run-${GITHUB_RUN_NUMBER}"
 
-      - name: Create AppTrust application version
-        run: |
-          jf apptrust version-create \
-            "${APPTRUST_APPLICATION_KEY}" \
-            "${APPTRUST_APPLICATION_VERSION}" \
-            --spec="apptrust-sources.json" \
-            --tag="github-run-${GITHUB_RUN_NUMBER}"
-
       - name: Collect open Dependabot alerts
         env:
           GH_TOKEN: ${{ github.token }}
