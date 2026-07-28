@@ -184,7 +184,7 @@ jobs:
             --paginate \
             --method GET \
             -H "Accept: application/vnd.github+json" \
-            "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
+            "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?per_page=100" \
             --slurp \
             | jq 'flatten' > dependabot-alerts-raw.json
 
