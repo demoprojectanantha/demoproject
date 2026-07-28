@@ -17,6 +17,7 @@ permissions:
   contents: write
   security-events: write
   attestations: write
+  vulnerability-alerts: read
 
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
