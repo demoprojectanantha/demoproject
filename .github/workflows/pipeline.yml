@@ -13,7 +13,7 @@ permissions:
   id-token: write # for creating OIDC tokens for signing.
   packages: write # for uploading attestations.
   contents: write #Ability to read the contents permission
-  security-events: write # Required for uploading code scanning 
+  security-events: write # Required for uploading code scanning
   attestations: write
 
 env:
@@ -30,6 +30,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      docker-image: ${{ steps.set-docker-metadata.outputs.docker-image }}
+      docker-subject: ${{ steps.set-docker-metadata.outputs.docker-subject }}
+      docker-digest: ${{ steps.push-docker.outputs.digest }}
 
     steps:
       - name: Checkout source code
@@ -100,13 +104,17 @@ jobs:
 
       - name: Build Maven project
         run: |
-          jf mvn clean install \
-            -DskipTests
+          jf mvn clean install
 
-      - name: Set Docker image name
+      - name: Set Docker image metadata
+        id: set-docker-metadata
         run: |
-          echo "DOCKER_IMAGE=${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}" >> "$GITHUB_ENV"
-          echo "DOCKER_SUBJECT=oci://${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild" >> "$GITHUB_ENV"
+          DOCKER_IMAGE="${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}"
+          DOCKER_SUBJECT="oci://${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild"
+          echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> "$GITHUB_ENV"
+          echo "DOCKER_SUBJECT=${DOCKER_SUBJECT}" >> "$GITHUB_ENV"
+          echo "docker-image=${DOCKER_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "docker-subject=${DOCKER_SUBJECT}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
         run: |
@@ -131,11 +139,27 @@ jobs:
           echo "digest=${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
           echo "Image digest: ${IMAGE_DIGEST}"
 
-      - name: Create GitHub build provenance
-        uses: actions/attest-build-provenance@v2
+  apptrust:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
         with:
-          subject-name: ${{ env.DOCKER_SUBJECT }}
-          subject-digest: ${{ steps.push-docker.outputs.digest }}
+          disable-auto-build-publish: true
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      - name: Verify JFrog connection
+        run: |
+          jf --version
+          jf config show
+          jf rt ping
 
       - name: Publish build-info
         run: |
@@ -251,41 +275,55 @@ jobs:
       - name: Promote through lifecycle
         shell: bash
         run: |
-            set -euo pipefail
+          set -euo pipefail
 
-            stages=(DEV TEST QA TRAIN)
+          stages=(DEV TEST QA TRAIN)
 
-            for stage in "${stages[@]}"; do
-              echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
+          for stage in "${stages[@]}"; do
+            echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
 
-              success=false
+            success=false
 
             for attempt in 1 2 3; do
-            if jf apptrust version-promote \
-              "${APPTRUST_APPLICATION_KEY}" \
-              "${APPTRUST_APPLICATION_VERSION}" \
-              "${stage}" \
-              --promotion-type=copy; then
+              if jf apptrust version-promote \
+                "${APPTRUST_APPLICATION_KEY}" \
+                "${APPTRUST_APPLICATION_VERSION}" \
+                "${stage}" \
+                --promotion-type=copy; then
                 success=true
-              break
-            fi
+                break
+              fi
 
-            echo "Attempt ${attempt} failed for ${stage}"
+              echo "Attempt ${attempt} failed for ${stage}"
 
-            if [[ "${attempt}" -lt 3 ]]; then
-            echo "Waiting 20 seconds before retry..."
-            sleep 20
-            fi
+              if [[ "${attempt}" -lt 3 ]]; then
+                echo "Waiting 20 seconds before retry..."
+                sleep 20
+              fi
             done
 
             if [[ "${success}" != "true" ]]; then
               echo "Promotion to ${stage} failed after 3 attempts"
-            exit 1
+              exit 1
             fi
-            done
+          done
+
       - name: Release application version to PROD
         shell: bash
         run: |
-            jf apptrust version-release \
+          jf apptrust version-release \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}"
+
+  provenance:
+    needs:
+      - build
+      - apptrust
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ needs.build.outputs.docker-subject }}
+          subject-digest: ${{ needs.build.outputs.docker-digest }}
