@@ -243,7 +243,7 @@ jobs:
             --application-key="${APPTRUST_APPLICATION_KEY}" \
             --application-version="${APPTRUST_APPLICATION_VERSION}" \
             --key="${RUNNER_TEMP}/dependabot-evidence-private-key.pem" \
-            --key-alias="default-lifecycle-key" \
+            --key-alias="production-signing-key" \
             --provider-id="github-dependabot"
 
       - name: Promote through AppTrust lifecycle
