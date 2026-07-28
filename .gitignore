@@ -1,0 +1,13 @@
+target/
+*.class
+*.jar
+*.war
+*.ear
+dependency-tree.txt
+*.backup
+*.bak
+.DS_Store
+.idea/
+*.iml
+.vscode/
+node_modules/
