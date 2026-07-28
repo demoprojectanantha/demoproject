@@ -9,10 +9,11 @@ on:
     - cron: "0 * * * *"
 
 permissions:
-  contents: write
-  security-events: read
-  id-token: write
-  attestations: write
+  actions: read # for detecting the Github Actions environment.
+  id-token: write # for creating OIDC tokens for signing.
+  packages: write # for uploading attestations.
+  contents: write #Ability to read the contents permission
+  security-events: write # Required for uploading code scanning 
 
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
