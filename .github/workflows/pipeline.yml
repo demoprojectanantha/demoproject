@@ -104,11 +104,10 @@ jobs:
 
       - name: Build Maven project
         run: |
-          jf mvn clean install \
-            -DskipTests=false
+          jf mvn clean install
 
-      - name: Set Docker image name
-        id: docker-meta
+      - name: Set Docker image metadata
+        id: set-docker-metadata
         run: |
           DOCKER_IMAGE="${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}"
           DOCKER_SUBJECT="oci://${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild"
@@ -138,8 +137,6 @@ jobs:
           fi
 
           echo "digest=${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
-          echo "docker-image=${DOCKER_IMAGE}" >> "$GITHUB_OUTPUT"
-          echo "docker-subject=${DOCKER_SUBJECT}" >> "$GITHUB_OUTPUT"
           echo "Image digest: ${IMAGE_DIGEST}"
 
   apptrust:
@@ -204,12 +201,6 @@ jobs:
             "${APPTRUST_APPLICATION_VERSION}" \
             --spec="apptrust-sources.json" \
             --tag="github-run-${GITHUB_RUN_NUMBER}"
-
-      - name: Generate GitHub Artifact Attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{ needs.build.outputs.docker-subject }}
-          subject-digest: ${{ needs.build.outputs.docker-digest }}
 
       - name: Collect open Dependabot alerts
         env:
