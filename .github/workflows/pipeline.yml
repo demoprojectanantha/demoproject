@@ -281,3 +281,9 @@ jobs:
             exit 1
             fi
             done
+      - name: Release application version to PROD
+        shell: bash
+        run: |
+            jf apptrust version-release \
+            "${APPTRUST_APPLICATION_KEY}" \
+            "${APPTRUST_APPLICATION_VERSION}"
