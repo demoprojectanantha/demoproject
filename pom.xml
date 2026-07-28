@@ -18,7 +18,7 @@
 
   <dependencies>
 
-    <!-- CRITICAL vulnerabilities blah blah blah-->
+    <!-- CRITICAL vulnerabilities blah blah blah blah-->
     <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-core</artifactId>
