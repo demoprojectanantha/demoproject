@@ -399,15 +399,7 @@ jobs:
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}"
 
-  provenance:
-    name: Create GitHub build provenance
-    needs:
-      - build
-      - apptrust
 
-    runs-on: ubuntu-latest
-
-    steps:
       - name: Create GitHub build provenance
         uses: actions/attest-build-provenance@v2
         with:
