@@ -246,16 +246,38 @@ jobs:
             --key-alias="default-lifecycle-key" \
             --provider-id="github-dependabot"
 
-      - name: Promote through AppTrust lifecycle
+      - name: Promote through lifecycle
         shell: bash
         run: |
-           set -euo pipefail
-           stages=(DEV TEST QA TRAIN)
-           for stage in "${stages[@]}"; do
-            echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
-            jf apptrust version-promote \
-            "${APPTRUST_APPLICATION_KEY}" \
-            "${APPTRUST_APPLICATION_VERSION}" \
-            "${stage}" \
-            --promotion-type=copy
-           done
+            set -euo pipefail
+
+            stages=(DEV TEST QA TRAIN)
+
+            for stage in "${stages[@]}"; do
+              echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
+
+              success=false
+
+            for attempt in 1 2 3; do
+            if jf apptrust version-promote \
+              "${APPTRUST_APPLICATION_KEY}" \
+              "${APPTRUST_APPLICATION_VERSION}" \
+              "${stage}" \
+              --promotion-type=copy; then
+                success=true
+              break
+            fi
+
+            echo "Attempt ${attempt} failed for ${stage}"
+
+            if [[ "${attempt}" -lt 3 ]]; then
+            echo "Waiting 20 seconds before retry..."
+            sleep 20
+            fi
+            done
+
+            if [[ "${success}" != "true" ]]; then
+              echo "Promotion to ${stage} failed after 3 attempts"
+            exit 1
+            fi
+            done
