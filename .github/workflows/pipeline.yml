@@ -250,11 +250,12 @@ jobs:
         shell: bash
         run: |
            set -euo pipefail
-           stages=(TEST QA TRAIN PROD)
+           stages=(DEV TEST QA TRAIN)
            for stage in "${stages[@]}"; do
             echo "Promoting ${APPTRUST_APPLICATION_KEY} version ${APPTRUST_APPLICATION_VERSION} to ${stage}"
             jf apptrust version-promote \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}" \
-            "${stage}"
+            "${stage}" \
+            --promotion-type=copy
            done
