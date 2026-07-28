@@ -4,16 +4,18 @@ on:
   push:
     branches:
       - master
+
   workflow_dispatch:
+
   schedule:
     - cron: "*/30 * * * *"
 
 permissions:
-  actions: read # for detecting the Github Actions environment.
-  id-token: write # for creating OIDC tokens for signing.
-  packages: write # for uploading attestations.
-  contents: write #Ability to read the contents permission
-  security-events: write # Required for uploading code scanning
+  actions: read
+  id-token: write
+  packages: write
+  contents: write
+  security-events: write
   attestations: write
 
 env:
@@ -21,15 +23,17 @@ env:
   JFROG_CLI_BUILD_NUMBER: ${{ github.run_number }}
   JF_PROJECT: masterdemo
 
-  # Existing AppTrust application key—not the display name
+  # Existing AppTrust application key, not the display name.
   APPTRUST_APPLICATION_KEY: helloworld
 
-  # AppTrust expects a semantic-style version
+  # AppTrust application version.
   APPTRUST_APPLICATION_VERSION: 1.0.${{ github.run_number }}
 
 jobs:
   build:
+    name: Build and publish build-info
     runs-on: ubuntu-latest
+
     outputs:
       docker-image: ${{ steps.set-docker-metadata.outputs.docker-image }}
       docker-subject: ${{ steps.set-docker-metadata.outputs.docker-subject }}
@@ -38,6 +42,8 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 19
         uses: actions/setup-java@v4
@@ -47,12 +53,16 @@ jobs:
           cache: maven
 
       - name: Install Maven 3.9.9
+        shell: bash
         run: |
+          set -euo pipefail
+
           curl -fsSL \
-            https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz \
+            "https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz" \
             -o /tmp/apache-maven.tar.gz
 
           sudo tar -xzf /tmp/apache-maven.tar.gz -C /opt
+
           echo "/opt/apache-maven-3.9.9/bin" >> "$GITHUB_PATH"
 
       - name: Set up JFrog CLI
@@ -64,7 +74,10 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
       - name: Verify tools and JFrog connection
+        shell: bash
         run: |
+          set -euo pipefail
+
           java -version
           mvn -version
           jf --version
@@ -72,7 +85,10 @@ jobs:
           jf rt ping
 
       - name: Configure Maven repositories
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf mvnc \
             --server-id-resolve=setup-jfrog-cli-server \
             --server-id-deploy=setup-jfrog-cli-server \
@@ -81,9 +97,11 @@ jobs:
             --repo-deploy-releases="${{ vars.MVN_VIRTUAL_RELEASE_REPO }}" \
             --repo-deploy-snapshots="${{ vars.MVN_VIRTUAL_SNAPSHOTS_REPO }}"
 
-      # Resolve and display dependencies before changing the POM version.
       - name: Display Maven dependency tree
+        shell: bash
         run: |
+          set -euo pipefail
+
           mvn dependency:tree \
             -DoutputType=text \
             -DoutputFile=dependency-tree.txt
@@ -91,47 +109,62 @@ jobs:
           echo "===== Maven dependency tree ====="
           cat dependency-tree.txt
 
-      # Submit the current pom.xml dependency graph to GitHub.
       - name: Submit Maven dependencies to GitHub
         uses: advanced-security/maven-dependency-submission-action@v5
 
-      # Change the application version only after dependency submission.
       - name: Set Maven project version
+        shell: bash
         run: |
+          set -euo pipefail
+
           mvn versions:set \
-            -DnewVersion="${{ github.run_number }}" \
+            -DnewVersion="${GITHUB_RUN_NUMBER}" \
             -DgenerateBackupPoms=false
 
       - name: Build Maven project
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf mvn clean install
 
       - name: Set Docker image metadata
         id: set-docker-metadata
+        shell: bash
         run: |
-          DOCKER_IMAGE="${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${{ github.run_number }}"
+          set -euo pipefail
+
+          DOCKER_IMAGE="${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild:${GITHUB_RUN_NUMBER}"
           DOCKER_SUBJECT="oci://${{ secrets.JF_DOCKER_REGISTRY }}/${{ vars.DOCKER_REPOSITORY }}/masterdemo-dockerbuild"
+
           echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> "$GITHUB_ENV"
           echo "DOCKER_SUBJECT=${DOCKER_SUBJECT}" >> "$GITHUB_ENV"
+
           echo "docker-image=${DOCKER_IMAGE}" >> "$GITHUB_OUTPUT"
           echo "docker-subject=${DOCKER_SUBJECT}" >> "$GITHUB_OUTPUT"
 
       - name: Build Docker image
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf docker build \
             --tag "${DOCKER_IMAGE}" \
             .
 
       - name: Push Docker image
         id: push-docker
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf docker push "${DOCKER_IMAGE}"
 
-          IMAGE_DIGEST=$(docker inspect \
+          IMAGE_DIGEST="$(docker inspect \
             --format='{{index .RepoDigests 0}}' \
-            "${DOCKER_IMAGE}" | cut -d'@' -f2)
+            "${DOCKER_IMAGE}" | cut -d'@' -f2)"
 
-          if [ -z "${IMAGE_DIGEST}" ]; then
+          if [[ -z "${IMAGE_DIGEST}" ]]; then
             echo "Could not determine the pushed Docker image digest."
             exit 1
           fi
@@ -139,8 +172,42 @@ jobs:
           echo "digest=${IMAGE_DIGEST}" >> "$GITHUB_OUTPUT"
           echo "Image digest: ${IMAGE_DIGEST}"
 
+      # This must remain in the same job where Maven and Docker build-info
+      # were collected. A new GitHub Actions job has a new runner and does
+      # not contain the previous runner's local JFrog build-info state.
+      - name: Collect build environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jf rt build-collect-env \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}"
+
+      - name: Add Git information to build-info
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jf rt build-add-git \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}"
+
+      - name: Publish build-info
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jf rt build-publish \
+            "${JFROG_CLI_BUILD_NAME}" \
+            "${JFROG_CLI_BUILD_NUMBER}" \
+            --project="${JF_PROJECT}"
+
   apptrust:
-    needs: build
+    name: Create and promote AppTrust version
+    needs:
+      - build
+
     runs-on: ubuntu-latest
 
     steps:
@@ -156,28 +223,19 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
       - name: Verify JFrog connection
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf --version
           jf config show
           jf rt ping
 
-      - name: Publish build-info
+      - name: Create AppTrust source specification
+        shell: bash
         run: |
-          jf rt build-collect-env \
-            "${JFROG_CLI_BUILD_NAME}" \
-            "${JFROG_CLI_BUILD_NUMBER}"
+          set -euo pipefail
 
-          jf rt build-add-git \
-            "${JFROG_CLI_BUILD_NAME}" \
-            "${JFROG_CLI_BUILD_NUMBER}"
-
-          jf rt build-publish \
-            "${JFROG_CLI_BUILD_NAME}" \
-            "${JFROG_CLI_BUILD_NUMBER}" \
-            --project="${JF_PROJECT}"
-
-      - name: Create AppTrust source spec
-        run: |
           cat > apptrust-sources.json <<EOF
           {
             "builds": [
@@ -195,7 +253,10 @@ jobs:
           cat apptrust-sources.json
 
       - name: Create AppTrust application version
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf apptrust version-create \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}" \
@@ -205,16 +266,20 @@ jobs:
       - name: Collect open Dependabot alerts
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
+          set -euo pipefail
+
           gh api \
             --paginate \
             --method GET \
             -H "Accept: application/vnd.github+json" \
-            "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?per_page=100" \
+            "/repos/${GITHUB_REPOSITORY}/dependabot/alerts?state=open&per_page=100" \
             --slurp \
-            | jq 'flatten' > dependabot-alerts-raw.json
+            | jq 'flatten' \
+            > dependabot-alerts-raw.json
 
-          ALERT_COUNT=$(jq 'length' dependabot-alerts-raw.json)
+          ALERT_COUNT="$(jq 'length' dependabot-alerts-raw.json)"
 
           jq \
             --arg repository "${GITHUB_REPOSITORY}" \
@@ -225,7 +290,7 @@ jobs:
               repository: $repository,
               commit: $commit,
               workflow_run: $workflow_run,
-              collected_at: now | todate,
+              collected_at: (now | todate),
               open_alert_count: $alert_count,
               alerts: [
                 .[] | {
@@ -252,17 +317,32 @@ jobs:
             }' dependabot-alerts-raw.json \
             > dependabot-evidence.json
 
+          echo "===== Dependabot evidence ====="
+          cat dependabot-evidence.json
+
       - name: Prepare JFrog Evidence signing key
         env:
           EVIDENCE_PRIVATE_KEY: ${{ secrets.JFROG_EVIDENCE_PRIVATE_KEY }}
+        shell: bash
         run: |
+          set -euo pipefail
+
+          if [[ -z "${EVIDENCE_PRIVATE_KEY}" ]]; then
+            echo "JFROG_EVIDENCE_PRIVATE_KEY is not configured."
+            exit 1
+          fi
+
           printf '%s' "${EVIDENCE_PRIVATE_KEY}" \
             > "${RUNNER_TEMP}/dependabot-evidence-private-key.pem"
 
-          chmod 600 "${RUNNER_TEMP}/dependabot-evidence-private-key.pem"
+          chmod 600 \
+            "${RUNNER_TEMP}/dependabot-evidence-private-key.pem"
 
       - name: Attach Dependabot alerts as AppTrust evidence
+        shell: bash
         run: |
+          set -euo pipefail
+
           jf evd create \
             --predicate="dependabot-evidence.json" \
             --predicate-type="https://github.com/dependabot/alerts/v1" \
@@ -290,6 +370,7 @@ jobs:
                 "${APPTRUST_APPLICATION_VERSION}" \
                 "${stage}" \
                 --promotion-type=copy; then
+
                 success=true
                 break
               fi
@@ -303,7 +384,7 @@ jobs:
             done
 
             if [[ "${success}" != "true" ]]; then
-              echo "Promotion to ${stage} failed after 3 attempts"
+              echo "Promotion to ${stage} failed after 3 attempts."
               exit 1
             fi
           done
@@ -311,14 +392,18 @@ jobs:
       - name: Release application version to PROD
         shell: bash
         run: |
+          set -euo pipefail
+
           jf apptrust version-release \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}"
 
   provenance:
+    name: Create GitHub build provenance
     needs:
       - build
       - apptrust
+
     runs-on: ubuntu-latest
 
     steps:
