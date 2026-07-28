@@ -257,6 +257,4 @@ jobs:
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}" \
             "${stage}" \
-            --promotion-type keep \
-            --sync true
            done
