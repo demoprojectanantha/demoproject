@@ -411,6 +411,4 @@ jobs:
       - name: Create GitHub build provenance
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: target/*.jar
-          subject-name: ${{ needs.build.outputs.docker-subject }}
-          subject-digest: ${{ needs.build.outputs.docker-digest }}
+          subject-path: target/*.*
