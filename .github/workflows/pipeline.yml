@@ -14,6 +14,7 @@ permissions:
   packages: write # for uploading attestations.
   contents: write #Ability to read the contents permission
   security-events: write # Required for uploading code scanning 
+  attestations: write
 
 env:
   JFROG_CLI_BUILD_NAME: demoproject-pipeline
