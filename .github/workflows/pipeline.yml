@@ -256,5 +256,5 @@ jobs:
             jf apptrust version-promote \
             "${APPTRUST_APPLICATION_KEY}" \
             "${APPTRUST_APPLICATION_VERSION}" \
-            "${stage}" \
+            "${stage}"
            done
